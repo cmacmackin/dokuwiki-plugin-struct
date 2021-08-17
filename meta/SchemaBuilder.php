@@ -218,7 +218,7 @@ class SchemaBuilder
     protected function migrateSingleToMulti($table, $colref)
     {
         /** @noinspection SqlResolve */
-        $sqlSelect = "SELECT pid, rev, col$colref AS value FROM data_$table WHERE latest = 1";
+        $sqlSelect = "SELECT pid, rev, published, col$colref AS value FROM data_$table WHERE latest = 1";
         $res = $this->sqlite->query($sqlSelect);
         $valueSet = $this->sqlite->res2arr($res);
         $this->sqlite->res_close($res);
@@ -228,15 +228,15 @@ class SchemaBuilder
             if (blank($values['value']) || trim($values['value']) == '') {
                 continue;
             }
-            $valueString[] = "(?, ?, ?, ?, ?)";
-            $arguments = array_merge($arguments, array($colref, $values['pid'], $values['rev'], 1, $values['value']));
+            $valueString[] = "(?, ?, ?, ?, ?, ?)";
+            $arguments = array_merge($arguments, array($colref, $values['pid'], $values['rev'], $values['published'], 1, $values['value']));
         }
         if (empty($valueString)) {
             return;
         }
         $valueString = join(',', $valueString);
         /** @noinspection SqlResolve */
-        $sqlInsert = "INSERT OR REPLACE INTO multi_$table (colref, pid, rev, row, value) VALUES $valueString";
+        $sqlInsert = "INSERT OR REPLACE INTO multi_$table (colref, pid, rev, published, row, value) VALUES $valueString";
         $this->sqlite->query($sqlInsert, $arguments);
     }
 
@@ -313,6 +313,7 @@ class SchemaBuilder
                     rid INTEGER,
                     rev INTEGER,
                     latest BOOLEAN NOT NULL DEFAULT 0,
+                    published BOOLEAN DEFAULT NULL,
                     PRIMARY KEY(pid, rid, rev)
                 )";
         $ok = $ok && (bool) $this->sqlite->query($sql);
@@ -324,6 +325,7 @@ class SchemaBuilder
                     rid INTEGER,
                     rev INTEGER,
                     latest INTEGER NOT NULL DEFAULT 0,
+                    published BOOLEAN DEFAULT NULL,
                     row INTEGER NOT NULL,
                     value,
                     PRIMARY KEY(colref, pid, rid, rev, row)
